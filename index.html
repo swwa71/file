@@ -8,12 +8,17 @@
   <title>ملفات | عدّل ملفاتك ببلاش</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="styles.css">
-  <link rel="stylesheet" href="glass.css?v=1">
+  <link rel="stylesheet" href="background.css?v=1">
+  <link rel="stylesheet" href="glass.css?v=2">
   <script defer src="jszip.min.js"></script>
   <script defer src="app.js"></script>
-  <script defer src="appearance.js?v=1"></script>
+  <script defer src="appearance.js?v=2"></script>
 </head>
 <body>
+  <!-- طبقة الخلفية: منفصلة عن الداشبورد -->
+  <div class="bg-stage" aria-hidden="true"><div class="bg-photo"></div><div class="bg-glow one"></div><div class="bg-glow two"></div><div class="bg-shade dark"></div><div class="bg-shade light"></div><div class="bg-vignette"></div></div>
+  <!-- طبقة الداشبورد -->
+  <div class="dashboard">
   <header class="topbar">
     <div class="container header-inner">
       <a class="brand" href="#home"><span class="brand-mark">م</span><span><strong>ملفات</strong><small>خلّص شغلك بسهولة ✨</small></span></a>
@@ -49,6 +54,7 @@
     </section>
   </main>
   <footer><div class="container footer-inner"><span>ملفات · خلّص شغلك ببلاش ✨</span><span>ملفاتك بجهازك، وما يحتاج تسجّل</span></div></footer>
+  </div>
   <template id="print-template"><div></div></template>
 </body>
 </html>
