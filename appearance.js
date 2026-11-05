@@ -42,11 +42,40 @@
         if (!target || !target.animate) return;
         target.getAnimations().forEach(a => a.cancel());
         target.animate(
-          [{opacity: 0, transform: 'translateY(10px)', filter: 'blur(6px)'}, {opacity: 1, transform: 'translateY(0)', filter: 'blur(0)'}],
-          {duration: 520, delay: i * 45, easing: 'cubic-bezier(.22,1,.36,1)', fill: 'backwards'}
+          [{opacity: .55, transform: 'translateY(5px)', filter: 'blur(2px)'}, {opacity: 1, transform: 'translateY(0)', filter: 'blur(0)'}],
+          {duration: 350, delay: i * 25, easing: 'cubic-bezier(.22,1,.36,1)', fill: 'backwards'}
         );
       });
+      const workspace = $('workspace');
+      if (workspace && workspace.animate) {
+        workspace.getAnimations().filter(a => a.id === 'tool-switch').forEach(a => a.cancel());
+        const animation = workspace.animate(
+          [{transform: 'translateY(4px) scale(.997)'}, {transform: 'translateY(0) scale(1)'}],
+          {duration: 380, easing: 'cubic-bezier(.22,1,.36,1)'}
+        );
+        animation.id = 'tool-switch';
+      }
     }).observe(title, {childList: true, characterData: true, subtree: true});
+  }
+
+  /* حركة ضوء خفيفة حول المؤشر، لأجهزة الماوس فقط */
+  if (!reduced.matches && matchMedia('(hover: hover) and (pointer: fine)').matches) {
+    const aura = document.createElement('div');
+    aura.className = 'pointer-aura';
+    aura.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(aura);
+    let pointX = -200, pointY = -200, auraFrame = 0;
+    const moveAura = () => {
+      auraFrame = 0;
+      aura.style.transform = `translate3d(${pointX - 90}px,${pointY - 90}px,0)`;
+    };
+    document.addEventListener('pointermove', e => {
+      if (e.pointerType !== 'mouse') return;
+      pointX = e.clientX; pointY = e.clientY;
+      aura.style.opacity = '1';
+      if (!auraFrame) auraFrame = requestAnimationFrame(moveAura);
+    }, {passive: true});
+    document.documentElement.addEventListener('pointerleave', () => { aura.style.opacity = '0'; });
   }
 
   /* 3) ضوء يتتبّع المؤشر على حافة الزجاج */
@@ -90,7 +119,7 @@
   if (hello) {
     const h = new Date().getHours();
     const g = h < 5 ? 'سهرة موفقة 🌙' : h < 12 ? 'صباح الخير ☀️' : h < 17 ? 'طاب يومك 🌤️' : h < 21 ? 'مساء الخير 🌆' : 'ليلة هادئة 🌙';
-    hello.textContent = g + ' · شغلك يخلص من هنا';
+    hello.textContent = g;
   }
 
   /* 6) عمق الخلفية: تتحرك مع المؤشر والتمرير، وتتضبب تدريجيًا لإبراز الأدوات */
@@ -118,8 +147,8 @@
       card.addEventListener('pointermove', e => {
         const r = card.getBoundingClientRect();
         const x = (e.clientX - r.left) / r.width - .5, y = (e.clientY - r.top) / r.height - .5;
-        card.style.setProperty('--ry', (x * 9).toFixed(2) + 'deg');
-        card.style.setProperty('--rx', (-y * 9).toFixed(2) + 'deg');
+        card.style.setProperty('--ry', (x * 2.5).toFixed(2) + 'deg');
+        card.style.setProperty('--rx', (-y * 2.5).toFixed(2) + 'deg');
       }, {passive: true});
       card.addEventListener('pointerleave', () => { card.style.setProperty('--rx', '0deg'); card.style.setProperty('--ry', '0deg'); });
     });

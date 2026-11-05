@@ -9,11 +9,11 @@
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="styles.css">
   <link rel="preload" as="image" href="bg-office.jpg?v=3">
-  <link rel="stylesheet" href="background.css?v=3">
-  <link rel="stylesheet" href="glass.css?v=4">
+  <link rel="stylesheet" href="background.css?v=5">
+  <link rel="stylesheet" href="glass.css?v=5">
   <script defer src="jszip.min.js"></script>
-  <script defer src="app.js"></script>
-  <script defer src="appearance.js?v=4"></script>
+  <script defer src="app.js?v=5"></script>
+  <script defer src="appearance.js?v=5"></script>
 </head>
 <body>
   <!-- طبقة الخلفية: منفصلة عن الداشبورد -->
@@ -22,14 +22,14 @@
   <div class="dashboard">
   <header class="topbar">
     <div class="container header-inner">
-      <a class="brand" href="#home"><span class="brand-mark">م</span><span><strong>ملفات</strong><small>خلّص شغلك بسهولة ✨</small></span></a>
+      <a class="brand" href="#home"><span class="brand-mark">م</span><span><strong>ملفات</strong><small>أدوات PDF والصور</small></span></a>
       <nav class="topnav"><a href="#tools">الأدوات</a><a href="#privacy">الخصوصية</a><button class="subtle" id="theme-btn" type="button" aria-label="تبديل المظهر">☾</button></nav>
     </div>
   </header>
   <main class="container" id="home">
-    <section class="hero"><span class="hero-chip c1" aria-hidden="true">PDF</span><span class="hero-chip c2" aria-hidden="true">JPG</span><span class="hero-chip c3" aria-hidden="true">TXT</span><span class="hero-chip c4" aria-hidden="true">ZIP</span><div class="hero-copy"><span class="eyebrow" id="greeting">شغلك يخلص من هنا ✨</span><h1>عدّل ملفاتك <span class="hl">بسهولة<svg viewBox="0 0 200 14" preserveAspectRatio="none" aria-hidden="true"><path d="M3 9 C 40 2, 78 13, 118 6 S 178 4, 197 8" pathLength="1"/></svg></span>. 😎</h1><p>عندك PDF أو صور؟ ادمج، افصل، اضغط وحوّل ملفاتك بخطوات بسيطة. خلّص شغلك وحمّل النتيجة على طول.</p></div><div class="hero-pills"><span>🔒 ملفاتك تبقى بجهازك</span><span>📱 يشتغل على الجوال والكمبيوتر</span><span>✨ سهل وما يحتاج تسجيل</span></div></section>
+    <section class="hero"><span class="hero-chip c1" aria-hidden="true">PDF</span><span class="hero-chip c2" aria-hidden="true">JPG</span><span class="hero-chip c3" aria-hidden="true">TXT</span><span class="hero-chip c4" aria-hidden="true">ZIP</span><div class="hero-copy"><span class="eyebrow" id="greeting">ملفاتك على راحتك ✨</span><h1>عدّل ملفاتك <span class="hl">بسهولة<svg viewBox="0 0 200 14" preserveAspectRatio="none" aria-hidden="true"><path d="M3 9 C 40 2, 78 13, 118 6 S 178 4, 197 8" pathLength="1"/></svg></span></h1><p>ادمج، افصل، اضغط وحوّل — مباشرة من جهازك.</p></div><div class="hero-pills"><span>🔒 معالجة على جهازك</span><span>📱 جوال وكمبيوتر</span><span>بدون تسجيل</span></div></section>
     <div class="studio">
-    <section id="tools" class="tools-section"><div class="section-head"><div><span class="eyebrow">جاهز؟ يلا نبدأ 👇</span><h2>وش تبي تسوي بملفاتك؟</h2></div><span class="small-muted">اختر أداة وارفع ملفاتك، والباقي سهل</span></div>
+    <section id="tools" class="tools-section"><div class="section-head"><div><span class="eyebrow">اختر وابدأ</span><h2>الأدوات</h2></div><span class="small-muted">اختر أداة</span></div>
       <div class="tool-grid" id="tool-grid">
         <button type="button" class="tool-card active" data-tool="merge"><span class="tool-icon">▣</span><strong>دمج PDF</strong><small>اجمع ملفاتك بملف واحد</small></button>
         <button type="button" class="tool-card" data-tool="split"><span class="tool-icon">✂</span><strong>فصل PDF</strong><small>طلّع الصفحات اللي تبيها</small></button>
@@ -41,8 +41,8 @@
       </div>
       <ol class="steps-card" aria-label="الخطوات"><li><b>١</b><span>اختر الأداة</span></li><li><b>٢</b><span>ارفع ملفاتك</span></li><li><b>٣</b><span>حمّل النتيجة</span></li></ol>
     </section>
-    <section class="workspace" id="workspace"><div class="workspace-header"><div><span class="eyebrow">هنا نشتغل 🛠️</span><h2 id="current-tool-title">دمج PDF</h2><p id="current-tool-description">ارفع ملفين PDF أو أكثر ورتّبهم مثل ما تبي.</p></div><button class="ghost" id="reset-btn" type="button">↺ امسح الملفات</button></div>
-      <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="اختر الملفات أو أسقطها هنا"><div class="drop-icon">↑</div><strong>اسحب ملفاتك هنا 📂</strong><p>أو اضغط واخترها من جهازك</p><span id="file-hint" class="small-muted">ملفات PDF</span><input id="file-picker" type="file" multiple hidden></div>
+    <section class="workspace" id="workspace"><div class="workspace-header"><div><span class="eyebrow">مساحة العمل</span><h2 id="current-tool-title">دمج PDF</h2><p id="current-tool-description">ارفع ملفين PDF أو أكثر ورتّبهم مثل ما تبي.</p></div><button class="ghost" id="reset-btn" type="button">↺ امسح الملفات</button></div>
+      <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="اختر الملفات أو أسقطها هنا"><div class="drop-icon">↑</div><strong>اسحب الملفات أو اضغط للاختيار</strong><p>ملفاتك تُعالج داخل المتصفح</p><span id="file-hint" class="small-muted">ملفات PDF</span><input id="file-picker" type="file" multiple hidden></div>
       <div id="files-area" class="files-area hidden"><div class="files-heading"><strong>ملفاتك المختارة <span id="file-count">0</span></strong><button class="link-btn" id="add-files-btn" type="button">+ زِد ملفات</button></div><ul id="files-list" class="files-list"></ul></div>
       <div id="options" class="options"></div>
       <div class="actions"><button type="button" class="primary" id="run-btn">يلا ندمج <span>←</span></button><span id="status" class="status" role="status" aria-live="polite"></span></div>

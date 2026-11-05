@@ -446,3 +446,91 @@ body.light progress,body.light progress::-webkit-progress-bar{background:rgba(60
 
 /* مساحة العمل تمتد بطول العمود الجانبي حتى يبقى التخطيط متوازنًا */
 @media(min-width:1000px){.studio .workspace{align-self:stretch}}
+
+
+/* ==========================================================
+   V5 — مساحة عمل ظاهرة دون تمرير على شاشات الكمبيوتر المعتادة
+   لمس خفيف للمؤشر وانتقالات هادئة؛ لا تغييرات على وظائف الأدوات
+   ========================================================== */
+.pointer-aura{
+  position:fixed;left:0;top:0;width:180px;height:180px;z-index:8;
+  border-radius:50%;pointer-events:none;opacity:0;
+  background:radial-gradient(circle,rgba(255,219,169,.095) 0%,rgba(255,219,169,.035) 35%,transparent 70%);
+  filter:blur(5px);will-change:transform;
+  transition:opacity .33s ease;
+}
+body.light .pointer-aura{background:radial-gradient(circle,rgba(145,85,34,.065),transparent 70%)}
+.glass-surface::before{background:radial-gradient(280px circle at var(--mx,50%) var(--my,0%),rgba(255,236,208,.13),transparent 65%)}
+body.light .glass-surface::before{background:radial-gradient(280px circle at var(--mx,50%) var(--my,0%),rgba(255,255,255,.28),transparent 65%)}
+.glass-surface::after{background:radial-gradient(175px circle at var(--mx,50%) var(--my,0%),rgba(255,225,183,.5),transparent 68%)}
+
+/* شاشة الكمبيوتر: لوحة قصيرة، قائمة أدوات مصغّرة، ورفع ظاهر فورًا */
+@media(min-width:860px){
+  html{scroll-padding-top:72px}
+  .container{width:min(1280px,calc(100% - 42px))}
+  .header-inner{min-height:62px}
+  .brand-mark{width:36px;height:36px;line-height:36px;border-radius:12px;font-size:1.3rem}
+  .brand strong{font-size:1.03rem}.brand small{font-size:.63rem}
+  .topnav{gap:18px;font-size:.84rem}
+  .subtle{width:35px;height:35px}
+  .hero{margin:11px 0 14px;padding:12px 22px;border-radius:19px;grid-template-columns:minmax(0,1fr);min-height:84px;gap:0}
+  .hero h1{font-size:clamp(1.35rem,2vw,1.75rem);line-height:1.35;margin:0 0 3px}
+  .hero .eyebrow,.hero-pills,.hero-chip{display:none}
+  .hero p{font-size:.79rem;line-height:1.6;max-width:none}
+  .hl svg{bottom:-.12em;height:.21em}
+  .studio{grid-template-columns:220px minmax(0,1fr);gap:14px;margin-bottom:19px;align-items:start}
+  .studio .tools-section{position:sticky;top:74px}
+  .studio .section-head{margin-bottom:8px;padding:0 2px}
+  .studio .section-head .eyebrow{display:none}
+  .studio .section-head h2{font-size:.96rem;margin:0}
+  .studio .tool-grid{flex-direction:column;overflow:visible;padding:0;gap:6px}
+  .studio .tool-card{min-height:45px;width:100%;padding:7px 10px;border-radius:14px;grid-template-columns:32px minmax(0,1fr);grid-template-rows:1fr;gap:9px;animation-duration:.42s}
+  .studio .tool-icon{grid-column:1;grid-row:1;width:32px;height:32px;font-size:1.05rem;border-radius:10px}
+  .studio .tool-card strong{grid-column:2;grid-row:1;align-self:center;font-size:.82rem;white-space:nowrap}
+  .studio .tool-card small,.studio .steps-card{display:none}
+  .studio .tool-lens{border-radius:14px}
+  .studio .workspace{align-self:start;min-height:0;padding:19px 22px;border-radius:20px;margin:0;scroll-margin-top:76px}
+  .workspace-header{align-items:center;gap:12px}
+  .workspace-header .eyebrow{font-size:.68rem}
+  .workspace-header h2{font-size:1.24rem;margin:0}
+  .workspace-header p{font-size:.8rem;line-height:1.55;margin:3px 0 0}
+  .workspace-header .ghost{font-size:.79rem;padding:7px 10px;border-radius:10px}
+  .dropzone,body.light .dropzone{margin-top:13px;padding:18px 10px;border-radius:17px}
+  .drop-icon{width:44px;height:44px;line-height:42px;font-size:1.5rem;border-radius:14px;margin:0 auto 6px}
+  .dropzone strong{font-size:.9rem}
+  .dropzone p{font-size:.75rem;margin:2px 0}
+  .dropzone .small-muted{font-size:.73rem}
+  .options{margin-top:12px}.help{margin-top:7px}
+  .actions{margin-top:13px;gap:12px}
+  .primary{min-height:39px;padding:7px 17px;border-radius:11px;font-size:.87rem}
+  .status{font-size:.77rem}
+  .info-grid{margin:18px 0 30px;gap:10px}
+  .info-card{padding:14px 16px;border-radius:18px}
+  .info-card h3{font-size:.88rem;margin-bottom:4px}
+  .info-card p{font-size:.77rem;line-height:1.6}
+}
+@media(min-width:860px) and (max-height:760px){
+  .header-inner{min-height:55px}
+  .hero{min-height:70px;margin:8px 0 10px;padding:9px 18px}
+  .studio .tools-section{top:64px}
+  .studio .tool-grid{gap:5px}
+  .studio .tool-card{min-height:41px;padding:5px 9px}
+  .studio .workspace{padding:16px 20px}
+  .dropzone,body.light .dropzone{padding:11px 9px}
+  .drop-icon{width:39px;height:39px;line-height:37px;margin-bottom:4px}
+}
+@media(max-width:859px){
+  .hero{margin:14px 0 16px;padding:19px 17px}
+  .hero .eyebrow{font-size:.74rem}
+  .hero h1{margin:3px 0 7px}
+  .hero p{font-size:.85rem;line-height:1.65}
+  .hero-pills{margin-top:12px}
+  .studio .tool-grid{gap:8px}
+}
+@media(max-width:760px){
+  .hero-pills span:nth-child(n+3){display:none}
+  .studio .tool-card{padding:9px 11px}
+  .studio .tool-icon{width:35px;height:35px;font-size:1.05rem}
+  .studio .workspace{scroll-margin-top:80px}
+}
+@media(prefers-reduced-motion:reduce){.pointer-aura{display:none!important}}
