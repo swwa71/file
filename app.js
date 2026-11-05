@@ -252,12 +252,13 @@
     const result=await zip.generateAsync({type:'blob',compression:'STORE'},m=>setProgress(80+m.percent*.2,'تجهيز صورك'));
     addDownload('صور-مضغوطة.zip',result,'تنزيل الصور ZIP');showResult(`${files.length} صورة • ${formatSize(total)} إلى ${formatSize(saved)} قبل تغليف ZIP${saved>total?' (الصورة أصغر أصلًا)':''}`);
   }
-  // ===== PDF -> نص: ترتيب الكلمات والاتجاه (عربي + إنجليزي + أرقام) =====
-  // كل عنصر يرجعه PDF.js تكون حروفه مرتبة منطقيًا، لكن ترتيب العناصر على السطر بصريًا (يسار->يمين).
-  // نعيد بناء الترتيب المنطقي بتجميع العناصر في "مقاطع اتجاه": العربي يُقرأ يمين->يسار، والإنجليزي/الأرقام يسار->يمين.
+  // ===== PDF -> نص: ترتيب الكلمات والاتجاه + إصلاح حروف اللام ألف (لا / لأ / لإ) =====
+  // PDF.js يعكس حروف الرمز المركّب (لا) فيطلع «السالم» بدل «السلام» و«هلال» بدل «الله».
+  // الحل: نقرأ حروف الصفحة كما هي (رمزًا رمزًا) من قائمة العمليات، ونعيد بناء ترتيب كل عنصر نصي على مستوى الرمز.
   const AR_LETTER=/[\u0590-\u05ff\u0621-\u064a\u066e-\u06d3\u06fa-\u06ff\u0750-\u077f\u08a0-\u08ff\ufb50-\ufdff\ufe70-\ufefc]/;
   const AR_LETTER_G=new RegExp(AR_LETTER.source,'g');
   const MIRROR={'(':')',')':'(','[':']',']':'[','{':'}','}':'{','<':'>','>':'<','«':'»','»':'«'};
+  const CLOSERS=')]}>»';
   function cleanPdfString(s){
     return String(s)
       .replace(/[\u200e\u200f\u061c\u202a-\u202e\u2066-\u2069\ufeff]/g,'')
@@ -269,23 +270,8 @@
     if(/[A-Za-z0-9\u0660-\u0669\u06f0-\u06f9]/.test(str))return 'L';
     return 'N';
   }
-  function composePdfLine(chunks,hint){
-    const items=chunks.map(c=>({x:c.x,width:c.width,height:c.height,str:cleanPdfString(c.str)})).filter(c=>c.str!=='');
-    if(!items.length)return '';
-    items.sort((a,b)=>a.x-b.x);                       // الترتيب البصري: يسار -> يمين
-    const all=items.map(c=>c.str).join('');
-    const ar=(all.match(AR_LETTER_G)||[]).length,lat=(all.match(/[A-Za-z]/g)||[]).length;
-    const base=ar>lat?'R':lat>ar?'L':(hint||'R');
-    // رموز بصرية: عناصر + مسافات مستنتجة من الفراغ بين العناصر
-    const toks=[];
-    items.forEach((it,i)=>{
-      if(i){
-        const prev=items[i-1],gap=it.x-(prev.x+prev.width);
-        if(gap>Math.max(1,Math.min(prev.height,it.height)*.2))toks.push({s:' ',c:'N',gap:true});
-      }
-      toks.push({s:it.str,c:pdfClass(it.str)});
-    });
-    // حل الرموز المحايدة (مسافات/علامات/أقواس): تتبع جيرانها، وعند الاختلاف تتبع اتجاه السطر
+  // ترتيب بصري (يسار->يمين) إلى ترتيب منطقي: المحايد يتبع جيرانه، والعربي يُعكس، والإنجليزي/الأرقام تبقى
+  function bidiOrder(toks,base,mirror){
     const cls=toks.map(t=>t.c);
     for(let i=0;i<toks.length;i++){
       if(toks[i].c!=='N')continue;
@@ -295,12 +281,41 @@
     }
     const runs=[];
     toks.forEach((t,i)=>{const last=runs[runs.length-1];if(last&&last.c===cls[i])last.t.push(t);else runs.push({c:cls[i],t:[t]});});
-    const ordered=base==='R'?runs.slice().reverse():runs;   // ترتيب المقاطع
-    const logical=[];
+    const ordered=base==='R'?runs.slice().reverse():runs;
+    const out=[];
     for(const run of ordered){
-      const seq=run.c==='R'?run.t.slice().reverse():run.t;  // العربي يُقرأ عكس ترتيبه البصري
-      seq.forEach(t=>logical.push({s:(run.c==='R'&&t.c==='N'&&t.s.length===1&&MIRROR[t.s])?MIRROR[t.s]:t.s,gap:t.gap}));
+      const seq=run.c==='R'?run.t.slice().reverse():run.t;
+      seq.forEach(t=>out.push({s:(mirror&&run.c==='R'&&t.c==='N'&&MIRROR[t.s])?MIRROR[t.s]:t.s,gap:t.gap}));
     }
+    return out;
+  }
+  function bracketErrors(str){
+    const st=[];let err=0;
+    for(const ch of str){
+      if('([{'.includes(ch))st.push(ch);
+      else if(')]}'.includes(ch)){const o=st.pop();if(o!==MIRROR[ch])err++;}
+    }
+    return err+st.length;
+  }
+  function composePdfLine(chunks,hint){
+    const items=chunks.map(c=>({x:c.x,width:c.width,height:c.height,str:cleanPdfString(c.str)})).filter(c=>c.str!=='');
+    if(!items.length)return '';
+    items.sort((a,b)=>a.x-b.x);                       // الترتيب البصري: يسار -> يمين
+    const all=items.map(c=>c.str).join('');
+    const ar=(all.match(AR_LETTER_G)||[]).length,lat=(all.match(/[A-Za-z]/g)||[]).length;
+    const base=ar>lat?'R':lat>ar?'L':(hint||'R');
+    const toks=[];
+    items.forEach((it,i)=>{
+      if(i){
+        const prev=items[i-1],gap=it.x-(prev.x+prev.width);
+        if(gap>Math.max(1,Math.min(prev.height,it.height)*.2))toks.push({s:' ',c:'N',gap:true});
+      }
+      toks.push({s:it.str,c:pdfClass(it.str)});
+    });
+    // اتجاه الأقواس المنفصلة يختلف بين برامج إنشاء PDF، فنختار الصيغة التي تكون أقواسها متوازنة
+    let logical=bidiOrder(toks,base,false);
+    const e0=bracketErrors(logical.map(t=>t.s).join(''));
+    if(e0>0){const alt=bidiOrder(toks,base,true);if(bracketErrors(alt.map(t=>t.s).join(''))<e0)logical=alt;}
     let out='';
     logical.forEach((t,i)=>{
       if(t.gap){
@@ -328,20 +343,81 @@
       if(line){line.items.push(c);line.y=(line.y*(line.items.length-1)+y)/line.items.length;line.height=Math.max(line.height,height);}
       else lines.push({y,height,items:[c]});
     }
-    // اتجاه الصفحة العام: يُستخدم للأسطر التي ما فيها حروف (أرقام أو رموز فقط)
     const pageAr=(sample.match(AR_LETTER_G)||[]).length,pageLat=(sample.match(/[A-Za-z]/g)||[]).length;
     const hint=pageLat>pageAr?'L':'R';
-    // في إحداثيات PDF: الأعلى y الأكبر، فهو السطر الأسبق
-    const result=lines.sort((a,b)=>b.y-a.y).map(l=>composePdfLine(l.items,hint)).filter(Boolean).join('\n');
+    const rows=lines.sort((a,b)=>b.y-a.y).map(l=>composePdfLine(l.items,hint)).filter(Boolean);
+    // قوس مفتوح في آخر السطر يعني أن الرقم أو الإيميل نزل للسطر التالي: نعيد ربطهما
+    for(let i=0;i<rows.length-1;i++){if(/[\(\[]$/.test(rows[i])){rows[i]+=rows[i+1];rows.splice(i+1,1);i--;}}
+    const result=rows.join('\n');
     if(result)return result;
     return fallback.join('').trim();
+  }
+  // حروف الصفحة كما تُرسم (رمز لكل عنصر، والرمز المركّب مثل «لا» يبقى رمزًا واحدًا)
+  async function pageGlyphPool(page){
+    const OPS=window.pdfjsLib.OPS,list=await page.getOperatorList(),pool=[];
+    for(let i=0;i<list.fnArray.length;i++){
+      const fn=list.fnArray[i];
+      if(fn!==OPS.showText&&fn!==OPS.showSpacedText)continue;
+      const arr=list.argsArray[i]&&list.argsArray[i][0];
+      if(!Array.isArray(arr))continue;
+      for(const g of arr){
+        if(!g||typeof g!=='object')continue;
+        const u=cleanPdfString(g.unicode||'').replace(/\s+/g,'');
+        if(u)pool.push({u,n:[...u].length,c:pdfClass(u)});
+      }
+    }
+    return pool;
+  }
+  const canonChar=c=>CLOSERS.includes(c)?MIRROR[c]:c;
+  const isLamAlef=(a,b)=>(a==='ل'&&/[اأإآ]/.test(b))||(b==='ل'&&/[اأإآ]/.test(a));
+  // نقبل إعادة البناء فقط لو اختلفت عن نص PDF.js في حروف «لا» المقلوبة (غير ذلك نترك النص كما هو)
+  function onlyLamAlefDiff(S,M){
+    for(let i=0;i<S.length;){
+      if(canonChar(S[i])===canonChar(M[i])){i++;continue;}
+      if(i+1<S.length&&S[i]===M[i+1]&&S[i+1]===M[i]&&isLamAlef(S[i],S[i+1])){i+=2;continue;}
+      return false;
+    }
+    return true;
+  }
+  function repairOne(item,pool,from){
+    const S=cleanPdfString(item.str),sNo=[...S.replace(/\s+/g,'')],n=sNo.length;
+    if(!n||item.dir==='ttb')return null;
+    const bases=item.dir==='rtl'?['R','L']:['L','R'];
+    const attempt=q=>{
+      let cnt=0,k=q;while(k<pool.length&&cnt<n){cnt+=pool[k].n;k++;}
+      if(cnt!==n)return null;
+      const toks=pool.slice(q,k).map(g=>({s:g.u,c:g.c}));
+      for(const base of bases){
+        const m=[...bidiOrder(toks,base,false).map(t=>t.s).join('')];
+        if(m.length!==n||!onlyLamAlefDiff(sNo,m))continue;
+        let j=0,out='';
+        for(const ch of S){if(/\s/.test(ch)){out+=ch;continue;}const c=m[j++];out+=(MIRROR[ch]&&MIRROR[c])?ch:c;}
+        return {str:out,next:k};
+      }
+      return null;
+    };
+    let r=attempt(from);
+    for(let q=from+1;!r&&q<Math.min(pool.length,from+400);q++)r=attempt(q);
+    return r;
+  }
+  function repairPdfItems(items,pool){
+    if(!pool.length)return items;
+    let ptr=0;
+    return items.map(item=>{
+      if(typeof item.str!=='string'||!item.str.trim())return item;
+      const r=repairOne(item,pool,ptr);
+      if(!r)return item;
+      ptr=r.next;return {...item,str:r.str};
+    });
   }
   async function extractPdfText(file){
     await pdfJs();const doc=await openPdfJs(file);let texts=[];
     try {
       for(let i=1;i<=doc.numPages;i++){
         const p=await doc.getPage(i),result=await p.getTextContent();
-        texts.push(reflowPdfItems(result.items));
+        let items=result.items;
+        try{items=repairPdfItems(items,await pageGlyphPool(p));}catch(e){/* لو فشل الإصلاح نكمل بالنص العادي */}
+        texts.push(reflowPdfItems(items));
         setProgress(i/doc.numPages*90,`قاعد أقرأ صفحة ${i} من ${doc.numPages}`);await tick();
       }
     } finally {await doc.destroy();}
@@ -399,7 +475,7 @@
       setStatus(message,'error');
     }finally{working=false;els.run.disabled=false;stopProgress();}
   }
-  document.querySelectorAll('[data-tool]').forEach(button=>button.addEventListener('click',()=>{setActive(button.dataset.tool);$('workspace').scrollIntoView({behavior:'smooth'});}));
+  document.querySelectorAll('[data-tool]').forEach(button=>button.addEventListener('click',()=>{setActive(button.dataset.tool);const ws=$('workspace'),top=ws.getBoundingClientRect().top;if(top>innerHeight*.6||top<0)ws.scrollIntoView({behavior:'smooth'});}));
   els.drop.addEventListener('click',()=>els.picker.click());els.drop.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();els.picker.click();}});
   els.picker.addEventListener('change',e=>{addFiles(e.target.files);e.target.value='';});
   ['dragenter','dragover'].forEach(type=>els.drop.addEventListener(type,e=>{e.preventDefault();els.drop.classList.add('dragover');}));

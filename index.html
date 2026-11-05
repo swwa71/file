@@ -10,10 +10,10 @@
   <link rel="stylesheet" href="styles.css">
   <link rel="preload" as="image" href="bg-office.jpg?v=3">
   <link rel="stylesheet" href="background.css?v=3">
-  <link rel="stylesheet" href="glass.css?v=3">
+  <link rel="stylesheet" href="glass.css?v=4">
   <script defer src="jszip.min.js"></script>
   <script defer src="app.js"></script>
-  <script defer src="appearance.js?v=3"></script>
+  <script defer src="appearance.js?v=4"></script>
 </head>
 <body>
   <!-- طبقة الخلفية: منفصلة عن الداشبورد -->
@@ -27,7 +27,8 @@
     </div>
   </header>
   <main class="container" id="home">
-    <section class="hero"><span class="hero-chip c1" aria-hidden="true">PDF</span><span class="hero-chip c2" aria-hidden="true">JPG</span><span class="hero-chip c3" aria-hidden="true">TXT</span><span class="hero-chip c4" aria-hidden="true">ZIP</span><span class="eyebrow" id="greeting">شغلك يخلص من هنا ✨</span><h1>عدّل ملفاتك <span class="hl">بسهولة<svg viewBox="0 0 200 14" preserveAspectRatio="none" aria-hidden="true"><path d="M3 9 C 40 2, 78 13, 118 6 S 178 4, 197 8" pathLength="1"/></svg></span>. 😎</h1><p>عندك PDF أو صور؟ ادمج، افصل، اضغط وحوّل ملفاتك بخطوات بسيطة. خلّص شغلك وحمّل النتيجة على طول.</p><div class="hero-pills"><span>🔒 ملفاتك تبقى بجهازك</span><span>📱 يشتغل على الجوال والكمبيوتر</span><span>✨ سهل وما يحتاج تسجيل</span></div></section>
+    <section class="hero"><span class="hero-chip c1" aria-hidden="true">PDF</span><span class="hero-chip c2" aria-hidden="true">JPG</span><span class="hero-chip c3" aria-hidden="true">TXT</span><span class="hero-chip c4" aria-hidden="true">ZIP</span><div class="hero-copy"><span class="eyebrow" id="greeting">شغلك يخلص من هنا ✨</span><h1>عدّل ملفاتك <span class="hl">بسهولة<svg viewBox="0 0 200 14" preserveAspectRatio="none" aria-hidden="true"><path d="M3 9 C 40 2, 78 13, 118 6 S 178 4, 197 8" pathLength="1"/></svg></span>. 😎</h1><p>عندك PDF أو صور؟ ادمج، افصل، اضغط وحوّل ملفاتك بخطوات بسيطة. خلّص شغلك وحمّل النتيجة على طول.</p></div><div class="hero-pills"><span>🔒 ملفاتك تبقى بجهازك</span><span>📱 يشتغل على الجوال والكمبيوتر</span><span>✨ سهل وما يحتاج تسجيل</span></div></section>
+    <div class="studio">
     <section id="tools" class="tools-section"><div class="section-head"><div><span class="eyebrow">جاهز؟ يلا نبدأ 👇</span><h2>وش تبي تسوي بملفاتك؟</h2></div><span class="small-muted">اختر أداة وارفع ملفاتك، والباقي سهل</span></div>
       <div class="tool-grid" id="tool-grid">
         <button type="button" class="tool-card active" data-tool="merge"><span class="tool-icon">▣</span><strong>دمج PDF</strong><small>اجمع ملفاتك بملف واحد</small></button>
@@ -38,6 +39,7 @@
         <button type="button" class="tool-card" data-tool="imagecompress"><span class="tool-icon">◈</span><strong>ضغط الصور</strong><small>صغّر الصور حسب حاجتك</small></button>
         <button type="button" class="tool-card" data-tool="pdftext"><span class="tool-icon">¶</span><strong>PDF إلى نص</strong><small>انسخ النص أو حمّله</small></button>
       </div>
+      <ol class="steps-card" aria-label="الخطوات"><li><b>١</b><span>اختر الأداة</span></li><li><b>٢</b><span>ارفع ملفاتك</span></li><li><b>٣</b><span>حمّل النتيجة</span></li></ol>
     </section>
     <section class="workspace" id="workspace"><div class="workspace-header"><div><span class="eyebrow">هنا نشتغل 🛠️</span><h2 id="current-tool-title">دمج PDF</h2><p id="current-tool-description">ارفع ملفين PDF أو أكثر ورتّبهم مثل ما تبي.</p></div><button class="ghost" id="reset-btn" type="button">↺ امسح الملفات</button></div>
       <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="اختر الملفات أو أسقطها هنا"><div class="drop-icon">↑</div><strong>اسحب ملفاتك هنا 📂</strong><p>أو اضغط واخترها من جهازك</p><span id="file-hint" class="small-muted">ملفات PDF</span><input id="file-picker" type="file" multiple hidden></div>
@@ -48,6 +50,7 @@
       <div id="result" class="result hidden"><span class="result-check">✓</span><div><strong>خلصنا! 🎉</strong><p id="result-info">حمّل ملفك الحين.</p></div><div id="result-buttons" class="result-buttons"></div></div>
       <div id="preview" class="preview hidden"></div>
     </section>
+    </div>
     <section id="privacy" class="info-grid">
       <div class="info-card"><h3>🔐 ملفاتك لك</h3><p>ملفاتك تظل على جهازك، والمعالجة تصير داخل المتصفح. الموقع ما يرسل محتوى ملفاتك لأي خادم.</p></div>
       <div class="info-card"><h3>⚙️ معلومة سريعة</h3><p>بعض أدوات PDF تحمّل مكتبات برمجية من الإنترنت أول ما تستخدمها. وبعدها تعتمد السرعة على حجم الملف وقوة جهازك.</p></div>
