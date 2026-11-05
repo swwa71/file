@@ -252,36 +252,72 @@
     const result=await zip.generateAsync({type:'blob',compression:'STORE'},m=>setProgress(80+m.percent*.2,'تجهيز صورك'));
     addDownload('صور-مضغوطة.zip',result,'تنزيل الصور ZIP');showResult(`${files.length} صورة • ${formatSize(total)} إلى ${formatSize(saved)} قبل تغليف ZIP${saved>total?' (الصورة أصغر أصلًا)':''}`);
   }
-  // PDF.js may return one word OR one glyph in each text item.
-  // Never append a space unconditionally between items; infer word gaps from the PDF coordinates.
-  function composePdfLine(chunks){
-    if(!chunks.length)return '';
-    const script=chunks.map(c=>c.str).join('');
-    const arCount=(script.match(/[\u0600-\u06ff\u0750-\u077f\u08a0-\u08ff]/g)||[]).length;
-    const latinCount=(script.match(/[A-Za-z]/g)||[]).length;
-    const rtl=arCount>latinCount;
-    const ordered=chunks.slice().sort((a,b)=>rtl ? b.x-a.x : a.x-b.x);
-    let result='',prev=null;
-    for(const item of ordered){
-      const str=item.str.replace(/[\u00a0\u2007\u202f]/g,' ');
-      if(!str)continue;
-      if(prev){
-        const gap=rtl ? prev.x-(item.x+item.width) : item.x-(prev.x+prev.width);
-        const threshold=Math.max(1,Math.min(prev.height,item.height)*.20);
-        const hasSpace=/\s$/.test(result)||/^\s/.test(str);
-        // Embedded spaces in PDF.js items are preserved. Only add an inferred gap for whole words.
-        if(!hasSpace&&gap>threshold&&!/^[،؛:,.!?؟\)\]٪]/.test(str)&&!/[\(\[]$/.test(result))result+=' ';
+  // ===== PDF -> نص: ترتيب الكلمات والاتجاه (عربي + إنجليزي + أرقام) =====
+  // كل عنصر يرجعه PDF.js تكون حروفه مرتبة منطقيًا، لكن ترتيب العناصر على السطر بصريًا (يسار->يمين).
+  // نعيد بناء الترتيب المنطقي بتجميع العناصر في "مقاطع اتجاه": العربي يُقرأ يمين->يسار، والإنجليزي/الأرقام يسار->يمين.
+  const AR_LETTER=/[\u0590-\u05ff\u0621-\u064a\u066e-\u06d3\u06fa-\u06ff\u0750-\u077f\u08a0-\u08ff\ufb50-\ufdff\ufe70-\ufefc]/;
+  const AR_LETTER_G=new RegExp(AR_LETTER.source,'g');
+  const MIRROR={'(':')',')':'(','[':']',']':'[','{':'}','}':'{','<':'>','>':'<','«':'»','»':'«'};
+  function cleanPdfString(s){
+    return String(s)
+      .replace(/[\u200e\u200f\u061c\u202a-\u202e\u2066-\u2069\ufeff]/g,'')
+      .replace(/[\u00a0\u2007\u202f]/g,' ')
+      .replace(/[\ufb50-\ufdff\ufe70-\ufefc]+/g,m=>m.normalize('NFKC'));
+  }
+  function pdfClass(str){
+    if(AR_LETTER.test(str))return 'R';
+    if(/[A-Za-z0-9\u0660-\u0669\u06f0-\u06f9]/.test(str))return 'L';
+    return 'N';
+  }
+  function composePdfLine(chunks,hint){
+    const items=chunks.map(c=>({x:c.x,width:c.width,height:c.height,str:cleanPdfString(c.str)})).filter(c=>c.str!=='');
+    if(!items.length)return '';
+    items.sort((a,b)=>a.x-b.x);                       // الترتيب البصري: يسار -> يمين
+    const all=items.map(c=>c.str).join('');
+    const ar=(all.match(AR_LETTER_G)||[]).length,lat=(all.match(/[A-Za-z]/g)||[]).length;
+    const base=ar>lat?'R':lat>ar?'L':(hint||'R');
+    // رموز بصرية: عناصر + مسافات مستنتجة من الفراغ بين العناصر
+    const toks=[];
+    items.forEach((it,i)=>{
+      if(i){
+        const prev=items[i-1],gap=it.x-(prev.x+prev.width);
+        if(gap>Math.max(1,Math.min(prev.height,it.height)*.2))toks.push({s:' ',c:'N',gap:true});
       }
-      result+=str;
-      prev=item;
+      toks.push({s:it.str,c:pdfClass(it.str)});
+    });
+    // حل الرموز المحايدة (مسافات/علامات/أقواس): تتبع جيرانها، وعند الاختلاف تتبع اتجاه السطر
+    const cls=toks.map(t=>t.c);
+    for(let i=0;i<toks.length;i++){
+      if(toks[i].c!=='N')continue;
+      let l=i-1,r=i+1;while(l>=0&&toks[l].c==='N')l--;while(r<toks.length&&toks[r].c==='N')r++;
+      const a=l>=0?toks[l].c:base,b=r<toks.length?toks[r].c:base;
+      cls[i]=a===b?a:base;
     }
-    // Keep punctuation / intentional spaces, but trim PDF positioning artifacts.
-    return result.replace(/[ \t]{2,}/g,' ').trim().normalize('NFC');
+    const runs=[];
+    toks.forEach((t,i)=>{const last=runs[runs.length-1];if(last&&last.c===cls[i])last.t.push(t);else runs.push({c:cls[i],t:[t]});});
+    const ordered=base==='R'?runs.slice().reverse():runs;   // ترتيب المقاطع
+    const logical=[];
+    for(const run of ordered){
+      const seq=run.c==='R'?run.t.slice().reverse():run.t;  // العربي يُقرأ عكس ترتيبه البصري
+      seq.forEach(t=>logical.push({s:(run.c==='R'&&t.c==='N'&&t.s.length===1&&MIRROR[t.s])?MIRROR[t.s]:t.s,gap:t.gap}));
+    }
+    let out='';
+    logical.forEach((t,i)=>{
+      if(t.gap){
+        const next=logical[i+1],prev=logical[i-1];
+        if(!next||!prev)return;
+        if(/\s$/.test(prev.s)||/^\s/.test(next.s))return;
+        if(/^[،؛:,.!?؟\)\]٪]/.test(next.s)||/[\(\[]$/.test(prev.s))return;
+      }
+      out+=t.s;
+    });
+    return out.replace(/[ \t]{2,}/g,' ').trim().normalize('NFC');
   }
   function reflowPdfItems(items){
-    const lines=[];let fallback=[];
+    const lines=[];let fallback=[],sample='';
     for(const item of items){
       if(typeof item.str!=='string')continue;
+      sample+=item.str;
       const x=Number(item.transform?.[4]),y=Number(item.transform?.[5]);
       const height=Math.max(1,Math.abs(Number(item.height||item.transform?.[0]||10)));
       if(!Number.isFinite(x)||!Number.isFinite(y)){
@@ -292,8 +328,11 @@
       if(line){line.items.push(c);line.y=(line.y*(line.items.length-1)+y)/line.items.length;line.height=Math.max(line.height,height);}
       else lines.push({y,height,items:[c]});
     }
-    // Typical PDF page coordinates: higher y means an earlier line on the page.
-    const result=lines.sort((a,b)=>b.y-a.y).map(l=>composePdfLine(l.items)).filter(Boolean).join('\n');
+    // اتجاه الصفحة العام: يُستخدم للأسطر التي ما فيها حروف (أرقام أو رموز فقط)
+    const pageAr=(sample.match(AR_LETTER_G)||[]).length,pageLat=(sample.match(/[A-Za-z]/g)||[]).length;
+    const hint=pageLat>pageAr?'L':'R';
+    // في إحداثيات PDF: الأعلى y الأكبر، فهو السطر الأسبق
+    const result=lines.sort((a,b)=>b.y-a.y).map(l=>composePdfLine(l.items,hint)).filter(Boolean).join('\n');
     if(result)return result;
     return fallback.join('').trim();
   }
@@ -309,21 +348,37 @@
     return texts.filter(Boolean).join('\n\n').trim();
   }
   async function textToDocx(text){
-    if(!window.JSZip)throw Error('مكتبة إنشاء DOCX غير متوفرة.');const zip=new JSZip();const lines=text.replace(/\r\n/g,'\n').split('\n');
+    if(!window.JSZip)throw Error('مكتبة إنشاء DOCX غير متوفرة.');const zip=new JSZip();
+    const lines=text.replace(/\r\n?/g,'\n').split('\n');
+    const docRtl=(text.match(AR_LETTER_G)||[]).length>=(text.match(/[A-Za-z]/g)||[]).length&&AR_LETTER.test(text);
+    const LATIN=/[\(\[]?[A-Za-z0-9]+(?:[._@:\/\-+%#&=?][A-Za-z0-9]+)*[\)\]]?/g;
+    const run=(t,rtl)=>t?`<w:r><w:rPr><w:rFonts w:ascii="Tahoma" w:hAnsi="Tahoma" w:cs="Tahoma"/><w:sz w:val="24"/><w:szCs w:val="24"/>${rtl?'<w:rtl/>':''}<w:lang w:val="${rtl?'ar-SA':'en-US'}" w:bidi="ar-SA"/></w:rPr><w:t xml:space="preserve">${escapeHTML(t)}</w:t></w:r>`:'';
     const xmlLines=lines.map(t=>{
-      const rtl=/[\u0600-\u06ff]/.test(t);
-      return `<w:p><w:pPr>${rtl?'<w:bidi/>':''}</w:pPr><w:r><w:rPr><w:rFonts w:ascii="Tahoma" w:hAnsi="Tahoma" w:cs="Tahoma"/>${rtl?'<w:rtl/>':''}</w:rPr><w:t xml:space="preserve">${escapeHTML(t)}</w:t></w:r></w:p>`;
+      const rtl=AR_LETTER.test(t)||(docRtl&&!/[A-Za-z]/.test(t));
+      let runs='';
+      if(rtl){
+        // الإنجليزي والأرقام (إيميل، رابط، تاريخ) في مقاطع مستقلة حتى لا تنقلب داخل الفقرة العربية
+        let last=0,m;LATIN.lastIndex=0;
+        while((m=LATIN.exec(t))){runs+=run(t.slice(last,m.index),true)+run(m[0],false);last=m.index+m[0].length;}
+        runs+=run(t.slice(last),true);
+      }else runs=run(t,false);
+      return `<w:p><w:pPr>${rtl?'<w:bidi/>':''}<w:spacing w:after="120" w:line="360" w:lineRule="auto"/></w:pPr>${runs}</w:p>`;
     }).join('');
-    zip.file('[Content_Types].xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>');
-    zip.file('_rels/.rels','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>');
-    zip.file('word/document.xml',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>${xmlLines}<w:sectPr/></w:body></w:document>`);
+    const NS='xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"',HEAD='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
+    zip.file('[Content_Types].xml',HEAD+'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/></Types>');
+    zip.file('_rels/.rels',HEAD+'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>');
+    zip.file('word/_rels/document.xml.rels',HEAD+'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>');
+    zip.file('word/styles.xml',HEAD+`<w:styles ${NS}><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Tahoma" w:hAnsi="Tahoma" w:eastAsia="Tahoma" w:cs="Tahoma"/><w:sz w:val="24"/><w:szCs w:val="24"/><w:lang w:val="en-US" w:eastAsia="en-US" w:bidi="ar-SA"/></w:rPr></w:rPrDefault></w:docDefaults><w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/></w:style></w:styles>`);
+    zip.file('word/document.xml',HEAD+`<w:document ${NS}><w:body>${xmlLines}<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="708" w:footer="708" w:gutter="0"/>${docRtl?'<w:bidi/>':''}</w:sectPr></w:body></w:document>`);
     return zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:6}});
   }
   async function showTextOutputs(text,name){
-    addDownload(`${name}.txt`,new Blob(['\uFEFF',text],{type:'text/plain;charset=utf-8'}),'حمّل TXT ⬇️');
+    // TXT: علامة اتجاه (RLM) في أول كل سطر عربي يبدأ برقم أو إنجليزي، حتى يعرضه المفكرة صح
+    const txt=text.split('\n').map(l=>AR_LETTER.test(l)&&!AR_LETTER.test(l.trim()[0]||'')?'\u200f'+l:l).join('\r\n');
+    addDownload(`${name}.txt`,new Blob(['\uFEFF',txt],{type:'text/plain;charset=utf-8'}),'حمّل TXT ⬇️');
     addDownload(`${name}.docx`,await textToDocx(text),'حمّل Word ⬇️');
     const copy=el('button','download-btn','📋 انسخ النص');copy.type='button';copy.onclick=()=>copyText(text);els.resultBtns.prepend(copy);
-    createPrintButton(name,`<p>${escapeHTML(text)}</p>`);
+    createPrintButton(name,text.split('\n').map(l=>`<p dir="${AR_LETTER.test(l)?'rtl':'auto'}">${escapeHTML(l)||'&nbsp;'}</p>`).join(''));
     showResult(`${text.length.toLocaleString('ar')} حرف • النص جاهز`);previewText(text);
   }
   async function pdfText(){
