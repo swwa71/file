@@ -85,4 +85,97 @@
     addEventListener('scroll', onScroll, {passive: true});
     onScroll();
   }
+  /* 5) تحية حسب وقت اليوم */
+  const hello = $('greeting');
+  if (hello) {
+    const h = new Date().getHours();
+    const g = h < 5 ? 'سهرة موفقة 🌙' : h < 12 ? 'صباح الخير ☀️' : h < 17 ? 'طاب يومك 🌤️' : h < 21 ? 'مساء الخير 🌆' : 'ليلة هادئة 🌙';
+    hello.textContent = g + ' · شغلك يخلص من هنا';
+  }
+
+  /* 6) عمق الخلفية: تتحرك مع المؤشر والتمرير، وتتضبب تدريجيًا لإبراز الأدوات */
+  const stage = document.querySelector('.bg-stage');
+  if (stage && !reduced.matches) {
+    let tick = 0;
+    const setScroll = () => {
+      tick = 0;
+      stage.style.setProperty('--sy', String(scrollY));
+      stage.style.setProperty('--focus', String(Math.min(1, scrollY / 520)));
+    };
+    addEventListener('scroll', () => { if (!tick) tick = requestAnimationFrame(setScroll); }, {passive: true});
+    setScroll();
+    if (matchMedia('(hover: hover) and (pointer: fine)').matches) {
+      document.addEventListener('pointermove', e => {
+        stage.style.setProperty('--px', ((e.clientX / innerWidth) - .5).toFixed(3));
+        stage.style.setProperty('--py', ((e.clientY / innerHeight) - .5).toFixed(3));
+      }, {passive: true});
+    }
+  }
+
+  /* 7) ميلان خفيف ثلاثي الأبعاد لبطاقات الأدوات عند تمرير المؤشر */
+  if (matchMedia('(hover: hover) and (pointer: fine)').matches && !reduced.matches) {
+    document.querySelectorAll('.tool-card').forEach(card => {
+      card.addEventListener('pointermove', e => {
+        const r = card.getBoundingClientRect();
+        const x = (e.clientX - r.left) / r.width - .5, y = (e.clientY - r.top) / r.height - .5;
+        card.style.setProperty('--ry', (x * 9).toFixed(2) + 'deg');
+        card.style.setProperty('--rx', (-y * 9).toFixed(2) + 'deg');
+      }, {passive: true});
+      card.addEventListener('pointerleave', () => { card.style.setProperty('--rx', '0deg'); card.style.setProperty('--ry', '0deg'); });
+    });
+  }
+
+  /* 8) ظهور ناعم لبطاقات المعلومات عند الوصول إليها */
+  if ('IntersectionObserver' in window && !reduced.matches) {
+    const items = [...document.querySelectorAll('.info-card, .section-head')];
+    items.forEach(el => el.classList.add('reveal-wait'));
+    const io = new IntersectionObserver(entries => {
+      entries.forEach(en => {
+        if (!en.isIntersecting) return;
+        const el = en.target, i = items.indexOf(el);
+        setTimeout(() => { el.classList.add('reveal-in'); el.classList.remove('reveal-wait'); }, (i % 3) * 90);
+        io.unobserve(el);
+      });
+    }, {threshold: .15});
+    items.forEach(el => io.observe(el));
+  }
+
+  /* 9) قصاصات احتفال عندما تظهر نتيجة ناجحة (تراقب ظهور صندوق النتيجة فقط) */
+  const box = $('result');
+  if (box && !reduced.matches) {
+    let wasHidden = box.classList.contains('hidden');
+    new MutationObserver(() => {
+      const hidden = box.classList.contains('hidden');
+      if (wasHidden && !hidden) confetti(box);
+      wasHidden = hidden;
+    }).observe(box, {attributes: true, attributeFilter: ['class']});
+  }
+  function confetti(from) {
+    const cv = document.createElement('canvas');
+    cv.className = 'confetti-canvas';
+    const dpr = Math.min(devicePixelRatio || 1, 2);
+    cv.width = innerWidth * dpr; cv.height = innerHeight * dpr;
+    document.body.appendChild(cv);
+    const ctx = cv.getContext('2d'); ctx.scale(dpr, dpr);
+    const r = from.getBoundingClientRect();
+    const ox = r.left + r.width / 2, oy = Math.min(Math.max(r.top + 20, 80), innerHeight - 80);
+    const colors = ['#ffe2bb', '#f6cf9c', '#eeb177', '#ffffff', '#a6ebc7', '#cfe3d4'];
+    const bits = Array.from({length: 90}, () => {
+      const a = Math.random() * Math.PI * 2, v = 4 + Math.random() * 9;
+      return {x: ox, y: oy, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 5, w: 5 + Math.random() * 6, h: 3 + Math.random() * 4,
+        rot: Math.random() * 6, vr: (Math.random() - .5) * .4, c: colors[(Math.random() * colors.length) | 0]};
+    });
+    const t0 = performance.now();
+    (function frame(now) {
+      const t = (now - t0) / 1900;
+      ctx.clearRect(0, 0, innerWidth, innerHeight);
+      bits.forEach(b => {
+        b.vy += .28; b.vx *= .985; b.x += b.vx; b.y += b.vy; b.rot += b.vr;
+        ctx.save(); ctx.globalAlpha = Math.max(0, 1 - t * t);
+        ctx.translate(b.x, b.y); ctx.rotate(b.rot); ctx.fillStyle = b.c; ctx.fillRect(-b.w / 2, -b.h / 2, b.w, b.h);
+        ctx.restore();
+      });
+      if (t < 1) requestAnimationFrame(frame); else cv.remove();
+    })(t0);
+  }
 })();

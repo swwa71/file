@@ -1,49 +1,75 @@
 /* ==========================================================
    طبقة الخلفية فقط — منفصلة تمامًا عن الداشبورد.
    تعيش داخل <div class="bg-stage"> وتُرسم خلف كل شيء.
-   لتغيير الخلفية: بدّل الصورة أو الألوان هنا فقط.
+   لتغيير الخلفية: بدّل الصورة bg-office.jpg أو الألوان هنا فقط.
    ========================================================== */
 
 .bg-stage{
   position:fixed;inset:0;z-index:-1;overflow:hidden;
-  pointer-events:none;background:#241d18;
+  pointer-events:none;background:#1c1d20;
 }
 
-/* الصورة: حركة بطيئة جدًا تعطي عمقًا بدون أن تشتّت */
+/* عمق: الصورة تتحرك قليلًا مع المؤشر والتمرير (المتغيرات تضبطها appearance.js) */
+.bg-depth{
+  position:absolute;inset:0;
+  transform:translate3d(calc(var(--px,0)*-16px),calc(var(--py,0)*-10px + var(--sy,0)*-.05px),0);
+  transition:transform .9s cubic-bezier(.22,1,.36,1);
+  will-change:transform;
+}
 .bg-photo{
-  position:absolute;inset:-3%;
-  background:url('assets/office-background.jpg') center 54%/cover no-repeat;
+  position:absolute;inset:-4%;
+  background:url('bg-office.jpg?v=3') center 53%/cover no-repeat;
   animation:bg-drift 64s ease-in-out infinite alternate;
   will-change:transform;
 }
 
+/* سحب التركيز: كلما نزلت للأدوات تتضبب الصورة قليلًا فتبرز الواجهة */
+.bg-focus{
+  position:absolute;inset:0;
+  -webkit-backdrop-filter:blur(13px);backdrop-filter:blur(13px);
+  opacity:var(--focus,0);
+}
+
 /* تعتيم الوضع الداكن والفاتح: طبقتان تتبادلان بالشفافية لانتقال ناعم عند تبديل المظهر */
 .bg-shade{position:absolute;inset:0;transition:opacity .8s ease}
-.bg-shade.dark{background:linear-gradient(110deg,rgba(22,17,13,.68),rgba(25,21,18,.38) 60%,rgba(20,15,11,.52))}
-.bg-shade.light{background:linear-gradient(110deg,rgba(248,239,228,.58),rgba(248,239,228,.34));opacity:0}
+.bg-shade.dark{background:linear-gradient(115deg,rgba(14,15,18,.7),rgba(18,19,22,.42) 58%,rgba(12,13,16,.58))}
+.bg-shade.light{background:linear-gradient(115deg,rgba(247,243,237,.56),rgba(247,243,237,.3));opacity:0}
 body.light .bg-shade.dark{opacity:0}
 body.light .bg-shade.light{opacity:1}
+
+/* خيوط ضوء رفيعة تحاكي إضاءة السقف في الصورة وتعبر ببطء */
+.bg-beams{position:absolute;inset:0;mix-blend-mode:screen;overflow:hidden}
+.bg-beams i{
+  position:absolute;display:block;height:2px;width:46vmax;border-radius:2px;
+  background:linear-gradient(90deg,transparent,rgba(255,236,205,.9),transparent);
+  box-shadow:0 0 18px 2px rgba(255,226,184,.35);
+  opacity:0;
+}
+.bg-beams i:nth-child(1){top:16%;right:-50vmax;--r:-3deg;animation:beam 21s linear infinite}
+.bg-beams i:nth-child(2){top:41%;right:-50vmax;--r:2deg;width:34vmax;animation:beam 29s linear 7s infinite}
+.bg-beams i:nth-child(3){top:72%;right:-50vmax;--r:-2deg;width:40vmax;animation:beam 25s linear 13s infinite}
+body.light .bg-beams{opacity:.4}
 
 /* بقعتا ضوء دافئتان تتحركان ببطء خلف الزجاج فتظهر انعكاسات حيّة */
 .bg-glow{position:absolute;border-radius:50%;will-change:transform;transition:opacity .8s ease}
 .bg-glow.one{
   width:60vmax;height:60vmax;top:-26vmax;right:-16vmax;
-  background:radial-gradient(closest-side,rgba(255,196,140,.46),rgba(255,196,140,0) 72%);
+  background:radial-gradient(closest-side,rgba(255,206,152,.4),rgba(255,206,152,0) 72%);
   animation:glow-a 40s ease-in-out infinite alternate;
 }
 .bg-glow.two{
   width:52vmax;height:52vmax;bottom:-28vmax;left:-14vmax;
-  background:radial-gradient(closest-side,rgba(196,140,92,.42),rgba(196,140,92,0) 72%);
+  background:radial-gradient(closest-side,rgba(168,196,176,.3),rgba(168,196,176,0) 72%);
   animation:glow-b 52s ease-in-out infinite alternate;
 }
-body.light .bg-glow{opacity:.55}
+body.light .bg-glow{opacity:.5}
 
 .bg-vignette{
   position:absolute;inset:0;
-  background:radial-gradient(130% 95% at 50% 38%,transparent 56%,rgba(10,7,5,.42));
+  background:radial-gradient(130% 95% at 50% 38%,transparent 56%,rgba(8,8,10,.42));
   transition:opacity .8s ease;
 }
-body.light .bg-vignette{opacity:.45}
+body.light .bg-vignette{opacity:.4}
 
 @keyframes bg-drift{
   from{transform:scale(1.04) translate3d(0,0,0)}
@@ -57,6 +83,17 @@ body.light .bg-vignette{opacity:.45}
   from{transform:translate3d(0,0,0)}
   to{transform:translate3d(10vmax,-6vmax,0)}
 }
+@keyframes beam{
+  0%{transform:translateX(0) rotate(var(--r,0deg));opacity:0}
+  12%{opacity:.5}
+  50%{opacity:.28}
+  88%{opacity:.5}
+  100%{transform:translateX(-190vw) rotate(var(--r,0deg));opacity:0}
+}
 
-@media(max-width:760px){.bg-glow.two{display:none}}
-@media(prefers-reduced-motion:reduce){.bg-photo,.bg-glow{animation:none}}
+@media(max-width:760px){
+  .bg-glow.two,.bg-beams i:nth-child(3){display:none}
+  .bg-photo{background-position:38% center}
+  .bg-focus{display:none}
+}
+@media(prefers-reduced-motion:reduce){.bg-photo,.bg-glow,.bg-beams i{animation:none}.bg-beams{display:none}.bg-depth{transition:none}}

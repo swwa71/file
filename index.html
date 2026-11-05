@@ -3,20 +3,21 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#29231f">
+  <meta name="theme-color" content="#1c1d20">
   <meta name="description" content="ملفات — ادمج وافصل واضغط وحوّل ملفات PDF والصور بكل سهولة من متصفحك">
-  <title>ملفات | عدّل ملفاتك ببلاش</title>
+  <title>ملفات | عدّل ملفاتك بسهولة</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="styles.css">
-  <link rel="stylesheet" href="background.css?v=1">
-  <link rel="stylesheet" href="glass.css?v=2">
+  <link rel="preload" as="image" href="bg-office.jpg?v=3">
+  <link rel="stylesheet" href="background.css?v=3">
+  <link rel="stylesheet" href="glass.css?v=3">
   <script defer src="jszip.min.js"></script>
   <script defer src="app.js"></script>
-  <script defer src="appearance.js?v=2"></script>
+  <script defer src="appearance.js?v=3"></script>
 </head>
 <body>
   <!-- طبقة الخلفية: منفصلة عن الداشبورد -->
-  <div class="bg-stage" aria-hidden="true"><div class="bg-photo"></div><div class="bg-glow one"></div><div class="bg-glow two"></div><div class="bg-shade dark"></div><div class="bg-shade light"></div><div class="bg-vignette"></div></div>
+  <div class="bg-stage" aria-hidden="true"><div class="bg-depth"><div class="bg-photo"></div></div><div class="bg-focus"></div><div class="bg-beams"><i></i><i></i><i></i></div><div class="bg-glow one"></div><div class="bg-glow two"></div><div class="bg-shade dark"></div><div class="bg-shade light"></div><div class="bg-vignette"></div></div>
   <!-- طبقة الداشبورد -->
   <div class="dashboard">
   <header class="topbar">
@@ -26,7 +27,7 @@
     </div>
   </header>
   <main class="container" id="home">
-    <section class="hero"><span class="eyebrow">شغلك يخلص من هنا ✨</span><h1>عدّل ملفاتك ببلاش. 😎</h1><p>عندك PDF أو صور؟ ادمج، افصل، اضغط وحوّل ملفاتك بكل سهولة. خلّص شغلك وحمّل النتيجة على طول.</p><div class="hero-pills"><span>🔒 ملفاتك تبقى بجهازك</span><span>📱 يشتغل على الجوال والكمبيوتر</span><span>✨ سهل وما يحتاج تسجيل</span></div></section>
+    <section class="hero"><span class="hero-chip c1" aria-hidden="true">PDF</span><span class="hero-chip c2" aria-hidden="true">JPG</span><span class="hero-chip c3" aria-hidden="true">TXT</span><span class="hero-chip c4" aria-hidden="true">ZIP</span><span class="eyebrow" id="greeting">شغلك يخلص من هنا ✨</span><h1>عدّل ملفاتك <span class="hl">بسهولة<svg viewBox="0 0 200 14" preserveAspectRatio="none" aria-hidden="true"><path d="M3 9 C 40 2, 78 13, 118 6 S 178 4, 197 8" pathLength="1"/></svg></span>. 😎</h1><p>عندك PDF أو صور؟ ادمج، افصل، اضغط وحوّل ملفاتك بخطوات بسيطة. خلّص شغلك وحمّل النتيجة على طول.</p><div class="hero-pills"><span>🔒 ملفاتك تبقى بجهازك</span><span>📱 يشتغل على الجوال والكمبيوتر</span><span>✨ سهل وما يحتاج تسجيل</span></div></section>
     <section id="tools" class="tools-section"><div class="section-head"><div><span class="eyebrow">جاهز؟ يلا نبدأ 👇</span><h2>وش تبي تسوي بملفاتك؟</h2></div><span class="small-muted">اختر أداة وارفع ملفاتك، والباقي سهل</span></div>
       <div class="tool-grid" id="tool-grid">
         <button type="button" class="tool-card active" data-tool="merge"><span class="tool-icon">▣</span><strong>دمج PDF</strong><small>اجمع ملفاتك بملف واحد</small></button>
@@ -53,7 +54,7 @@
       <div class="info-card"><h3>📄 قبل تضغط PDF</h3><p>الضغط المتوسط والقوي يحوّل الصفحات إلى صور؛ يعني ممكن ما تقدر تبحث في النص أو تحدده بعد الضغط. اختر الضغط بدون فقدان إذا تبي تحتفظ بالنص.</p></div>
     </section>
   </main>
-  <footer><div class="container footer-inner"><span>ملفات · خلّص شغلك ببلاش ✨</span><span>ملفاتك بجهازك، وما يحتاج تسجّل</span></div></footer>
+  <footer><div class="container footer-inner"><span>ملفات · خلّص شغلك بسهولة ✨</span><span>ملفاتك بجهازك، وما يحتاج تسجّل</span></div></footer>
   </div>
   <template id="print-template"><div></div></template>
 </body>
