@@ -12,7 +12,7 @@
 /* عمق: الصورة تتحرك قليلًا مع المؤشر والتمرير (المتغيرات تضبطها appearance.js) */
 .bg-depth{
   position:absolute;inset:0;
-  transform:translate3d(calc(var(--px,0)*-7px),calc(var(--py,0)*-5px + var(--sy,0)*-.05px),0);
+  transform:translate3d(calc(var(--px,0)*-16px),calc(var(--py,0)*-10px + var(--sy,0)*-.05px),0);
   transition:transform .9s cubic-bezier(.22,1,.36,1);
   will-change:transform;
 }
@@ -51,10 +51,11 @@ body.light .bg-shade.light{opacity:1}
 body.light .bg-beams{opacity:.4}
 
 /* بقعتا ضوء دافئتان تتحركان ببطء خلف الزجاج فتظهر انعكاسات حيّة */
-.bg-glow{position:absolute;border-radius:50%;will-change:transform;transition:opacity .8s ease}
+@property --gh{syntax:'<number>';inherits:false;initial-value:28}
+.bg-glow{position:absolute;border-radius:50%;will-change:transform;transition:opacity .8s ease,--gh 1.2s ease}
 .bg-glow.one{
   width:60vmax;height:60vmax;top:-26vmax;right:-16vmax;
-  background:radial-gradient(closest-side,rgba(255,206,152,.4),rgba(255,206,152,0) 72%);
+  background:radial-gradient(closest-side,hsl(var(--gh) 95% 72% / .4),hsl(var(--gh) 95% 72% / 0) 72%);
   animation:glow-a 40s ease-in-out infinite alternate;
 }
 .bg-glow.two{
@@ -62,6 +63,14 @@ body.light .bg-beams{opacity:.4}
   background:radial-gradient(closest-side,rgba(168,196,176,.3),rgba(168,196,176,0) 72%);
   animation:glow-b 52s ease-in-out infinite alternate;
 }
+/* بقعة ضوء ناعمة تتبع المؤشر خلف الزجاج */
+.bg-spot{
+  position:absolute;left:0;top:0;width:560px;height:560px;margin:-280px 0 0 -280px;border-radius:50%;
+  background:radial-gradient(closest-side,rgba(255,226,190,.28),rgba(255,226,190,.09) 55%,transparent 74%);
+  transform:translate3d(var(--spx,50vw),var(--spy,40vh),0);mix-blend-mode:screen;
+  opacity:var(--spot,0);transition:opacity .7s ease;will-change:transform;
+}
+body.light .bg-spot{mix-blend-mode:soft-light;background:radial-gradient(closest-side,rgba(255,255,255,.7),transparent 72%)}
 body.light .bg-glow{opacity:.5}
 
 .bg-vignette{
@@ -92,8 +101,8 @@ body.light .bg-vignette{opacity:.4}
 }
 
 @media(max-width:760px){
-  .bg-glow.two,.bg-beams i:nth-child(3){display:none}
+  .bg-glow.two,.bg-beams i:nth-child(3),.bg-spot{display:none}
   .bg-photo{background-position:38% center}
   .bg-focus{display:none}
 }
-@media(prefers-reduced-motion:reduce){.bg-photo,.bg-glow,.bg-beams i{animation:none}.bg-beams{display:none}.bg-depth{transition:none}}
+@media(prefers-reduced-motion:reduce){.bg-photo,.bg-glow,.bg-beams i{animation:none}.bg-spot{display:none}.bg-beams{display:none}.bg-depth{transition:none}}

@@ -32,50 +32,47 @@
     addEventListener('resize', () => place(false));
   }
 
-  /* 2) انتقال ناعم لمحتوى مساحة العمل عند تبديل الأداة */
+  /* 2) انتقال عند تبديل الأداة: المحتوى يدخل باتجاه التنقل، لمعة تعبر الزجاج، وإضاءة الخلفية تغيّر لونها */
   const title = $('current-tool-title');
-  const targets = ['current-tool-title', 'current-tool-description', 'options', 'dropzone'].map($);
+  const wsEl = $('workspace');
+  const cardsList = [...document.querySelectorAll('.tool-card')];
+  const hues = {merge: 28, split: 205, pages: 150, compress: 335, images2pdf: 265, imagecompress: 46, pdftext: 175};
+  const glowOne = document.querySelector('.bg-glow.one');
+  const bgPhoto = document.querySelector('.bg-photo');
+  let lastIdx = Math.max(0, cardsList.findIndex(c => c.classList.contains('active')));
+  const setHue = () => {
+    const c = document.querySelector('.tool-card.active');
+    if (glowOne && c && hues[c.dataset.tool] !== undefined) glowOne.style.setProperty('--gh', hues[c.dataset.tool]);
+  };
+  setHue();
   if (title) {
+    const targets = ['current-tool-title', 'current-tool-description', 'files-area', 'options', 'dropzone'].map($);
     new MutationObserver(() => {
+      setHue();
+      const idx = Math.max(0, cardsList.findIndex(c => c.classList.contains('active')));
+      const dir = idx >= lastIdx ? 1 : -1;
+      lastIdx = idx;
+      if (wsEl) wsEl.scrollTo && wsEl.scrollTo({top: 0});
       if (reduced.matches) return;
-      targets.forEach((target, i) => {
-        if (!target || !target.animate) return;
-        target.getAnimations().forEach(a => a.cancel());
-        target.animate(
-          [{opacity: .55, transform: 'translateY(5px)', filter: 'blur(2px)'}, {opacity: 1, transform: 'translateY(0)', filter: 'blur(0)'}],
-          {duration: 350, delay: i * 25, easing: 'cubic-bezier(.22,1,.36,1)', fill: 'backwards'}
+      const ease = 'cubic-bezier(.22,1,.36,1)';
+      targets.forEach((t, i) => {
+        if (!t || !t.animate || t.classList.contains('hidden')) return;
+        t.getAnimations().forEach(a => a.cancel());
+        t.animate(
+          [{opacity: 0, transform: `translateY(${dir * 22}px) scale(.985)`, filter: 'blur(8px)'}, {opacity: 1, transform: 'none', filter: 'blur(0)'}],
+          {duration: 640, delay: 60 + i * 55, easing: ease, fill: 'backwards'}
         );
       });
-      const workspace = $('workspace');
-      if (workspace && workspace.animate) {
-        workspace.getAnimations().filter(a => a.id === 'tool-switch').forEach(a => a.cancel());
-        const animation = workspace.animate(
-          [{transform: 'translateY(4px) scale(.997)'}, {transform: 'translateY(0) scale(1)'}],
-          {duration: 380, easing: 'cubic-bezier(.22,1,.36,1)'}
-        );
-        animation.id = 'tool-switch';
+      if (wsEl && wsEl.animate) {
+        const sweep = document.createElement('span');
+        sweep.className = 'ws-sweep';
+        sweep.setAttribute('aria-hidden', 'true');
+        wsEl.appendChild(sweep);
+        sweep.animate([{backgroundPosition: '160% 0'}, {backgroundPosition: '-60% 0'}], {duration: 1000, easing: 'ease-in-out'}).onfinish = () => sweep.remove();
+        wsEl.animate([{transform: `translateY(${dir * 6}px) scale(.994)`}, {transform: 'none'}], {duration: 560, easing: ease});
       }
+      if (bgPhoto && bgPhoto.animate) bgPhoto.animate([{filter: 'brightness(1)'}, {filter: 'brightness(1.14) saturate(1.12)'}, {filter: 'brightness(1)'}], {duration: 900, easing: 'ease-in-out'});
     }).observe(title, {childList: true, characterData: true, subtree: true});
-  }
-
-  /* حركة ضوء خفيفة حول المؤشر، لأجهزة الماوس فقط */
-  if (!reduced.matches && matchMedia('(hover: hover) and (pointer: fine)').matches) {
-    const aura = document.createElement('div');
-    aura.className = 'pointer-aura';
-    aura.setAttribute('aria-hidden', 'true');
-    document.body.appendChild(aura);
-    let pointX = -200, pointY = -200, auraFrame = 0;
-    const moveAura = () => {
-      auraFrame = 0;
-      aura.style.transform = `translate3d(${pointX - 90}px,${pointY - 90}px,0)`;
-    };
-    document.addEventListener('pointermove', e => {
-      if (e.pointerType !== 'mouse') return;
-      pointX = e.clientX; pointY = e.clientY;
-      aura.style.opacity = '1';
-      if (!auraFrame) auraFrame = requestAnimationFrame(moveAura);
-    }, {passive: true});
-    document.documentElement.addEventListener('pointerleave', () => { aura.style.opacity = '0'; });
   }
 
   /* 3) ضوء يتتبّع المؤشر على حافة الزجاج */
@@ -119,11 +116,15 @@
   if (hello) {
     const h = new Date().getHours();
     const g = h < 5 ? 'سهرة موفقة 🌙' : h < 12 ? 'صباح الخير ☀️' : h < 17 ? 'طاب يومك 🌤️' : h < 21 ? 'مساء الخير 🌆' : 'ليلة هادئة 🌙';
-    hello.textContent = g;
+    hello.textContent = g + ' · شغلك يخلص من هنا';
   }
 
-  /* 6) عمق الخلفية: تتحرك مع المؤشر والتمرير، وتتضبب تدريجيًا لإبراز الأدوات */
+  /* 6) تفاعل المؤشر: عمق للخلفية، بقعة ضوء ناعمة تتبعه، حركة خفيفة للشارات، وجذب لطيف لزر التنفيذ */
   const stage = document.querySelector('.bg-stage');
+  const root = document.documentElement;
+  const topbar = document.querySelector('.topbar');
+  const syncTop = () => { if (topbar) root.style.setProperty('--top-h', topbar.offsetHeight + 'px'); };
+  syncTop(); addEventListener('resize', syncTop); addEventListener('load', syncTop);
   if (stage && !reduced.matches) {
     let tick = 0;
     const setScroll = () => {
@@ -134,10 +135,27 @@
     addEventListener('scroll', () => { if (!tick) tick = requestAnimationFrame(setScroll); }, {passive: true});
     setScroll();
     if (matchMedia('(hover: hover) and (pointer: fine)').matches) {
+      let tx = innerWidth * .5, ty = innerHeight * .4, cx = tx, cy = ty, loop = 0;
+      const run = () => {
+        cx += (tx - cx) * .12; cy += (ty - cy) * .12;
+        stage.style.setProperty('--spx', cx.toFixed(1) + 'px');
+        stage.style.setProperty('--spy', cy.toFixed(1) + 'px');
+        loop = (Math.abs(tx - cx) > .4 || Math.abs(ty - cy) > .4) ? requestAnimationFrame(run) : 0;
+      };
+      const btn = $('run-btn');
       document.addEventListener('pointermove', e => {
-        stage.style.setProperty('--px', ((e.clientX / innerWidth) - .5).toFixed(3));
-        stage.style.setProperty('--py', ((e.clientY / innerHeight) - .5).toFixed(3));
+        tx = e.clientX; ty = e.clientY;
+        root.style.setProperty('--px', ((e.clientX / innerWidth) - .5).toFixed(3));
+        root.style.setProperty('--py', ((e.clientY / innerHeight) - .5).toFixed(3));
+        stage.style.setProperty('--spot', '1');
+        if (!loop) loop = requestAnimationFrame(run);
+        if (btn) {
+          const r = btn.getBoundingClientRect(), dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2);
+          const near = Math.hypot(dx, dy) < 130;
+          btn.style.translate = near ? `${(dx * .12).toFixed(1)}px ${(dy * .18).toFixed(1)}px` : '';
+        }
       }, {passive: true});
+      document.documentElement.addEventListener('pointerleave', () => stage.style.setProperty('--spot', '0'));
     }
   }
 
@@ -147,8 +165,8 @@
       card.addEventListener('pointermove', e => {
         const r = card.getBoundingClientRect();
         const x = (e.clientX - r.left) / r.width - .5, y = (e.clientY - r.top) / r.height - .5;
-        card.style.setProperty('--ry', (x * 2.5).toFixed(2) + 'deg');
-        card.style.setProperty('--rx', (-y * 2.5).toFixed(2) + 'deg');
+        card.style.setProperty('--ry', (x * 5).toFixed(2) + 'deg');
+        card.style.setProperty('--rx', (-y * 5).toFixed(2) + 'deg');
       }, {passive: true});
       card.addEventListener('pointerleave', () => { card.style.setProperty('--rx', '0deg'); card.style.setProperty('--ry', '0deg'); });
     });

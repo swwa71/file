@@ -13,13 +13,13 @@
     preview: $('preview')
   };
   const tools = {
-    merge: {title:'دمج PDF',desc:'ارفع ملفين PDF أو أكثر ورتّبهم مثل ما تبي، وخلّهم ملف واحد.',accept:'.pdf,application/pdf',multiple:true,button:'يلا ندمج',hint:'ملفات PDF • تقدر تغيّر ترتيبها'},
-    split: {title:'فصل PDF',desc:'طلّع كل صفحة لحالها أو اختر مجموعات صفحات، وحمّلها كلها مرة وحدة.',accept:'.pdf,application/pdf',multiple:false,button:'يلا نفصل',hint:'ملف PDF واحد'},
-    pages: {title:'تنظيم الصفحات',desc:'تبي تستخرج صفحات أو تحذفها أو تدوّرها؟ حدّد اللي تبيه.',accept:'.pdf,application/pdf',multiple:false,button:'يلا نرتّب',hint:'ملف PDF واحد'},
-    compress: {title:'ضغط PDF',desc:'خفّف حجم ملفك واختر مستوى الضغط اللي يناسبك.',accept:'.pdf,application/pdf',multiple:false,button:'يلا نضغط',hint:'ملف PDF واحد'},
-    images2pdf: {title:'صور إلى PDF',desc:'اجمع صورك بملف PDF واحد، ورتّبها قبل تبدأ.',accept:'image/jpeg,image/png,image/webp,image/bmp,image/gif,.heic,.heif',multiple:true,button:'سوّ PDF',hint:'صور من الصيغ اللي يدعمها متصفحك'},
-    imagecompress: {title:'ضغط الصور',desc:'صغّر الصور وتحكّم في جودتها وحمّلها مرة وحدة.',accept:'image/*',multiple:true,button:'يلا نضغط',hint:'صورة أو أكثر'},
-    pdftext: {title:'PDF إلى نص',desc:'استخرج النص العربي أو الإنجليزي، ثم انسخه أو حمّله.',accept:'.pdf,application/pdf',multiple:false,button:'طلّع النص',hint:'ملف PDF فيه نص قابل للتحديد'}
+    merge: {title:'دمج PDF',desc:'ادمج ملفاتك بملف واحد.',accept:'.pdf,application/pdf',multiple:true,button:'يلا ندمج',hint:'ملفات PDF • تقدر ترتّبها'},
+    split: {title:'فصل PDF',desc:'استخرج كل صفحة لحالها أو مجموعات صفحات.',accept:'.pdf,application/pdf',multiple:false,button:'يلا نفصل',hint:'ملف PDF واحد'},
+    pages: {title:'تنظيم الصفحات',desc:'استخرج صفحات، احذفها أو دوّرها.',accept:'.pdf,application/pdf',multiple:false,button:'يلا نرتّب',hint:'ملف PDF واحد'},
+    compress: {title:'ضغط PDF',desc:'قلّل حجم الملف بالمستوى اللي يناسبك.',accept:'.pdf,application/pdf',multiple:false,button:'يلا نضغط',hint:'ملف PDF واحد'},
+    images2pdf: {title:'صور إلى PDF',desc:'اجمع صورك في ملف PDF واحد.',accept:'image/jpeg,image/png,image/webp,image/bmp,image/gif,.heic,.heif',multiple:true,button:'سوّ PDF',hint:'صور JPG أو PNG أو غيرها'},
+    imagecompress: {title:'ضغط الصور',desc:'صغّر الصور وتحكّم بجودتها.',accept:'image/*',multiple:true,button:'يلا نضغط',hint:'صورة أو أكثر'},
+    pdftext: {title:'PDF إلى نص',desc:'استخرج النص وانسخه أو حمّله TXT أو Word.',accept:'.pdf,application/pdf',multiple:false,button:'طلّع النص',hint:'PDF فيه نص قابل للتحديد'}
   };
   let active = 'merge';
   let files = [];
@@ -76,13 +76,6 @@
       grid.append(optionLabel('مقاس صفحات الملف',select('image-page-size',[['a4','A4 — احتواء الصورة'],['fit','على مقاس الصورة تقريبًا']])));
       grid.append(optionLabel('جودة الصور',select('image-page-quality',[['0.9','عالية'],['0.7','متوسطة'],['0.5','حجم أصغر']])));
       els.options.append(grid,paragraph('لو الصورة ضخمة بنصغّرها شوي عشان ما يعلق المتصفح.'));
-    }
-    if(active==='pdftext'){
-      grid.append(optionLabel('قراءة النص',select('pdftext-mode',[
-        ['smart','ترتيب ذكي للحروف (مُوصى به)'],
-        ['original','النص الأصلي من PDF.js']
-      ])));
-      els.options.append(grid,paragraph('بعض ملفات PDF تحفظ الحروف بترتيب معكوس. جرّب «الأصلي» إذا اختلفت النتيجة.'));
     }
     if(active==='imagecompress'){
       grid.append(optionLabel('أقصى عرض للصورة (بكسل)',input('number','img-max-width','مثال: 1600',1600)));
@@ -266,17 +259,6 @@
   const AR_LETTER_G=new RegExp(AR_LETTER.source,'g');
   const MIRROR={'(':')',')':'(','[':']',']':'[','{':'}','}':'{','<':'>','>':'<','«':'»','»':'«'};
   const CLOSERS=')]}>»';
-  // نتعامل مع الحركات باعتبارها جزءًا من حرفها، فلا نفصل (لَ) عن حركتها عند التصحيح.
-  const LETTER_MARK=/\p{M}/u;
-  function graphemes(s){
-    const parts=[];
-    for(const ch of String(s)){
-      if(LETTER_MARK.test(ch)&&parts.length)parts[parts.length-1]+=ch;
-      else parts.push(ch);
-    }
-    return parts;
-  }
-  const baseLetter=s=>[...s].find(ch=>!LETTER_MARK.test(ch))||'';
   function cleanPdfString(s){
     return String(s)
       .replace(/[\u200e\u200f\u061c\u202a-\u202e\u2066-\u2069\ufeff]/g,'')
@@ -381,13 +363,13 @@
       for(const g of arr){
         if(!g||typeof g!=='object')continue;
         const u=cleanPdfString(g.unicode||'').replace(/\s+/g,'');
-        if(u&&!u.includes('\ufffd'))pool.push({u,n:[...u].length,c:pdfClass(u)});
+        if(u)pool.push({u,n:[...u].length,c:pdfClass(u)});
       }
     }
     return pool;
   }
   const canonChar=c=>CLOSERS.includes(c)?MIRROR[c]:c;
-  const isLamAlef=(a,b)=>(baseLetter(a)==='ل'&&/[اأإآ]/.test(baseLetter(b)))||(baseLetter(b)==='ل'&&/[اأإآ]/.test(baseLetter(a)));
+  const isLamAlef=(a,b)=>(a==='ل'&&/[اأإآ]/.test(b))||(b==='ل'&&/[اأإآ]/.test(a));
   // نقبل إعادة البناء فقط لو اختلفت عن نص PDF.js في حروف «لا» المقلوبة (غير ذلك نترك النص كما هو)
   function onlyLamAlefDiff(S,M){
     for(let i=0;i<S.length;){
@@ -398,7 +380,7 @@
     return true;
   }
   function repairOne(item,pool,from){
-    const S=cleanPdfString(item.str),sNo=graphemes(S.replace(/\s+/g,'')),n=[...S.replace(/\s+/g,'')].length;
+    const S=cleanPdfString(item.str),sNo=[...S.replace(/\s+/g,'')],n=sNo.length;
     if(!n||item.dir==='ttb')return null;
     const bases=item.dir==='rtl'?['R','L']:['L','R'];
     const attempt=q=>{
@@ -406,15 +388,10 @@
       if(cnt!==n)return null;
       const toks=pool.slice(q,k).map(g=>({s:g.u,c:g.c}));
       for(const base of bases){
-        const candidate=bidiOrder(toks,base,false).map(t=>t.s).join('');
-        const m=graphemes(candidate);
-        if([...candidate].length!==n||!onlyLamAlefDiff(sNo,m))continue;
+        const m=[...bidiOrder(toks,base,false).map(t=>t.s).join('')];
+        if(m.length!==n||!onlyLamAlefDiff(sNo,m))continue;
         let j=0,out='';
-        for(const cluster of graphemes(S)){
-          if(/^\s+$/.test(cluster)){out+=cluster;continue;}
-          const c=m[j++];
-          out+=(MIRROR[cluster]&&MIRROR[c])?cluster:c;
-        }
+        for(const ch of S){if(/\s/.test(ch)){out+=ch;continue;}const c=m[j++];out+=(MIRROR[ch]&&MIRROR[c])?ch:c;}
         return {str:out,next:k};
       }
       return null;
@@ -433,23 +410,14 @@
       ptr=r.next;return {...item,str:r.str};
     });
   }
-  function originalPdfItems(items){
-    // خط رجعة أمين: نص PDF.js نفسه دون إعادة ترتيب سطري أو تعديل اللام ألف.
-    return items.map(item=>typeof item.str==='string'
-      ? cleanPdfString(item.str)+(item.hasEOL?'\n':'') : '').join('').trim();
-  }
-  async function extractPdfText(file, mode='smart'){
+  async function extractPdfText(file){
     await pdfJs();const doc=await openPdfJs(file);let texts=[];
     try {
       for(let i=1;i<=doc.numPages;i++){
         const p=await doc.getPage(i),result=await p.getTextContent();
         let items=result.items;
-        if(mode==='original'){
-          texts.push(originalPdfItems(items));
-        }else{
-          try{items=repairPdfItems(items,await pageGlyphPool(p));}catch(e){/* إذا فشل الإصلاح يبقى نص PDF.js دون تغيير */}
-          texts.push(reflowPdfItems(items));
-        }
+        try{items=repairPdfItems(items,await pageGlyphPool(p));}catch(e){/* لو فشل الإصلاح نكمل بالنص العادي */}
+        texts.push(reflowPdfItems(items));
         setProgress(i/doc.numPages*90,`قاعد أقرأ صفحة ${i} من ${doc.numPages}`);await tick();
       }
     } finally {await doc.destroy();}
@@ -491,7 +459,7 @@
   }
   async function pdfText(){
     if(files.length!==1)throw Error('ارفع ملف PDF واحد.');
-    const text=await extractPdfText(files[0],$('pdftext-mode')?.value||'smart');
+    const text=await extractPdfText(files[0]);
     if(!text.trim())throw Error('ما لقينا نص قابل للنسخ في هالملف. ممكن تكون صفحاته صورًا أو النص مشفّرًا.');
     await showTextOutputs(text,basename(files[0].name));
   }
